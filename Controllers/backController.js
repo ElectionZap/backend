@@ -120,7 +120,7 @@ export const getPollsByStatus = async (req, res) => {
         return res.status(400).json({ message: "Invalid status" });
     }
 
-    res.status(200).json({ polls });
+    res.status(200).json(polls);
   });
 };
 
@@ -157,7 +157,7 @@ export const getPollsByCreator = async (req, res) => {
       return res.status(404).json({ message: `No polls found for creator ${creator}` });
     }
 
-    res.status(200).json({ polls: rows });
+    res.status(200).json( rows );
   });
 }
 
@@ -180,7 +180,8 @@ export const getAllPolls = async (req, res) => {
 
 function cleanJSONString(input) {
   // Replace backticks and the 'json' label with empty strings
-  return input.replace(/```json|```/g, '');
+  // Also replace \n and \ with empty strings
+  return input.replace(/`|json|\\n|\\/g, "");
 }
 
 export const createPoll = async (req, res) => {
@@ -225,6 +226,28 @@ export const addNillionIdToPoll = async (req, res) => {
     }
 
     res.status(200).json({ message: `Nillion ID added to poll with ID ${id} successfully` });
+  });
+}
+
+// row.questionaire = "\n{\n  \"main_question\": \"Which is the best pizza flavor?\",\n  \"main_options\": [\"Margueritta\", \"Pepperoni\"],\n  \"support_questions\": [\n    {\n      \"question\": \"Which crust type do you prefer?\",\n      \"options\": [\"Thin Crust\", \"Thick Crust\", \"Stuffed Crust\", \"Cheese Burst\", \"Gluten-Free\"],\n      \"weights\": {\n        \"option_0_weights\": [0, 1, 2, 3, 4],\n        \"option_1_weights\": [4, 3, 2, 1, 0]\n      }\n    },\n    {\n      \"question\": \"What sauce do you like on your pizza?\",\n      \"options\": [\"Tomato\", \"Pesto\", \"Alfredo\", \"Barbecue\", \"Garlic Parmesan\"],\n      \"weights\": {\n        \"option_0_weights\": [2, 2, 1, 0, 1],\n        \"option_1_weights\": [1, 0, 3, 2, 2]\n      }\n    },\n    {\n      \"question\": \"Which cheese combination do you prefer?\",\n      \"options\": [\"Mozzarella\", \"Cheddar\", \"Parmesan\", \"Feta\", \"Goat Cheese\"],\n      \"weights\": {\n        \"option_0_weights\": [1, 0, 2, 2, 3],\n        \"option_1_weights\": [3, 2, 1, 0, 1]\n      }\n    },\n    {\n      \"question\": \"How spicy do you like your pizza?\",\n      \"options\": [\"Not Spicy\", \"Mild\", \"Medium\", \"Hot\", \"Extra Hot\"],\n      \"weights\": {\n        \"option_0_weights\": [1, 3, 0, 2, 1],\n        \"option_1_weights\": [2, 1, 3, 0, 2]\n      }\n    },\n    {\n      \"question\": \"What is your favorite pizza topping?\",\n      \"options\": [\"Olives\", \"Mushrooms\", \"Onions\", \"Bacon\", \"Bell Peppers\"],\n      \"weights\": {\n        \"option_0_weights\": [3, 1, 2, 0, 1],\n        \"option_1_weights\": [0, 2, 1, 3, 1]\n      }\n    },\n    {\n      \"question\": \"Which pizza size do you usually order?\",\n      \"options\": [\"Small\", \"Medium\", \"Large\", \"Extra Large\", \"Personal Size\"],\n      \"weights\": {\n        \"option_0_weights\": [0, 2, 1, 0, 3],\n        \"option_1_weights\": [2, 1, 3, 2, 0]\n      }\n    }\n  ]\n}\n"
+
+export const getQuizFromPoll = async (req, res) => {
+  const { id } = req.params;
+  db.get("SELECT questionaire FROM polls WHERE poll_id = ?", [id], (err, row) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error getting poll data",
+        error: err.message,
+      });
+    }
+
+    if (!row) {
+      return res.status(404).json({ message: `Poll with ID ${id} not found` });
+    }
+
+    // transform the string row.questionaire to a JSON object
+    const cleanedQuestionaire = JSON.parse(row.questionaire);
+    res.status(200).json( cleanedQuestionaire );
   });
 }
 
@@ -379,6 +402,18 @@ export const deletePoll = async (req, res) => {
   });
 }
 
+export const deleteAllPolls = async (req, res) => {
+  db.run("DELETE FROM polls", function(err) {
+    if (err) {
+      return res.status(500).json({
+        message: "Error deleting polls",
+        error: err.message,
+      });
+    }
+
+    res.status(200).json({ message: "All polls deleted successfully" });
+  });
+}
 
 // SHOULD NOT USE THIS ANYMORE
 export const createUser = async (req, res) => {
