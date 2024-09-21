@@ -185,7 +185,7 @@ function cleanJSONString(input) {
 }
 
 export const createPoll = async (req, res) => {
-  const { title, description, isQuadraticVoting, creator, startDate, endDate, votingOptions, results, status, questionaire, userIDs } = req.body;
+  const { title, description, image, isQuadraticVoting, creator, startDate, endDate, votingOptions, results, status, questionaire, userIDs } = req.body;
 
   const stringifyVotingOptions = JSON.stringify(votingOptions);
 
@@ -196,7 +196,7 @@ export const createPoll = async (req, res) => {
   const cleanedQuestionaire = cleanJSONString(generatedQuestionaire);
   console.log(cleanedQuestionaire);
 
-  db.run("INSERT INTO polls (title, description, is_quadratic_voting, creator, start_date, end_date, voting_options, results, status, questionaire, user_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [title, description, isQuadraticVoting, creator, startDate, endDate, stringifyVotingOptions, results, status, cleanedQuestionaire, userIDs], function(err) {
+  db.run("INSERT INTO polls (title, description, image, is_quadratic_voting, creator, start_date, end_date, voting_options, results, status, questionaire, user_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [title, description, image, isQuadraticVoting, creator, startDate, endDate, stringifyVotingOptions, results, status, cleanedQuestionaire, userIDs], function(err) {
     if (err) {
       return res.status(500).json({
         message: "Error creating poll",
