@@ -1,4 +1,93 @@
 import db from "../database.js";
+import OpenAI from "openai";
+import * as dotenv from "dotenv";
+
+dotenv.config();
+
+// should do this in a separate file
+const openai = new OpenAI({
+  baseURL: "https://api.red-pill.ai/v1",
+  apiKey: process.env.REDPILL_KEY,
+});
+
+const generateQuestionaire = async (
+  title,
+  description,
+  votingOptions
+) => {
+  // [{ "id": 1, "option": "Pikachu"},{ "id": 2, "option": "Charizard"}] voting options example
+  const completion = await openai.chat.completions.create({
+    messages: [
+      {
+        role: "user",
+        content: `Generate a quiz for a poll titled ${title} with the description ${description}.
+          The poll has the following voting options: ${votingOptions.map((option) => option.option).join(", ")}.
+          you have to generate a main question and 6 support questions with 5 options each.
+          also, your OUTPUT MUST follow the format below: (IT HAS TO BE WRITTEN AS A STRINGIFIED JSON)
+          "{
+            "main_question": "Main Question",
+            "main_options": ["Option 0", "Option 1"],
+            "support_questions": [
+              {
+                "question": "Support Question 1",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"],
+                "weights": {
+                  "option_0_weights": [0, 1, 2, 3, 4],
+                  "option_1_weights": [4, 3, 2, 1, 0]
+                }
+              },
+              {
+                "question": "Support Question 2",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"],
+                "weights": {
+                  "option_0_weights": [2, 2, 1, 0, 1],
+                  "option_1_weights": [1, 0, 3, 2, 2]
+                }
+              },
+              {
+                "question": "Support Question 3",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"],
+                "weights": {
+                  "option_0_weights": [1, 0, 2, 2, 3],
+                  "option_1_weights": [3, 2, 1, 0, 1]
+                }
+              },
+              {
+                "question": "Support Question 4",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"],
+                "weights": {
+                  "option_0_weights": [1, 3, 0, 2, 1],
+                  "option_1_weights": [2, 1, 3, 0, 2]
+                }
+              },
+              {
+                "question": "Support Question 5",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"],
+                "weights": {
+                  "option_0_weights": [3, 1, 2, 0, 1],
+                  "option_1_weights": [0, 2, 1, 3, 1]
+                }
+              },
+              {
+                "question": "Support Question 6",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"],
+                "weights": {
+                  "option_0_weights": [0, 2, 1, 0, 3],
+                  "option_1_weights": [2, 1, 3, 2, 0]
+                }
+              }
+            ]
+          }"
+        `,
+      },
+    ],
+    model: "gpt-4o",
+  });
+
+  console.log(completion.choices[0].message.content);
+  return completion.choices[0].message.content;
+};
+
 
 export const getPollsByStatus = async (req, res) => {
   const { status } = req.params;
@@ -89,9 +178,24 @@ export const getAllPolls = async (req, res) => {
   });
 }
 
+function cleanJSONString(input) {
+  // Replace backticks and the 'json' label with empty strings
+  return input.replace(/```json|```/g, '');
+}
+
 export const createPoll = async (req, res) => {
   const { title, description, isQuadraticVoting, creator, startDate, endDate, votingOptions, results, status, questionaire, userIDs } = req.body;
-  db.run("INSERT INTO polls (title, description, is_quadratic_voting, creator, start_date, end_date, voting_options, results, status, questionaire, user_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [title, description, isQuadraticVoting, creator, startDate, endDate, votingOptions, results, status, questionaire, userIDs], function(err) {
+
+  const stringifyVotingOptions = JSON.stringify(votingOptions);
+
+  // Generate questionaire based on title and description
+  const generatedQuestionaire = await generateQuestionaire(title, description, votingOptions);
+
+  // Clean the JSON string
+  const cleanedQuestionaire = cleanJSONString(generatedQuestionaire);
+  console.log(cleanedQuestionaire);
+
+  db.run("INSERT INTO polls (title, description, is_quadratic_voting, creator, start_date, end_date, voting_options, results, status, questionaire, user_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [title, description, isQuadraticVoting, creator, startDate, endDate, stringifyVotingOptions, results, status, cleanedQuestionaire, userIDs], function(err) {
     if (err) {
       return res.status(500).json({
         message: "Error creating poll",
