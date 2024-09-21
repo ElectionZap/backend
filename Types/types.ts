@@ -26,25 +26,23 @@
 // }
 
 
-export type Pool = {
+export type Poll = {
     id: number,
     title: string,
     description: string,
-    isQuadraticVoting: boolean,
-    creator: {
-        id: number,
-        wallet: string[]
-    },
+    isQuadraticVoting: number,
+    creator: string, // right now it is user wallet address
     startDate: string,
     endDate: string,
     votingOptions: VotingOption[],
     results: string,
     status: string,
-    questionaire: string,
-    userIDs: string[]
+    questionaire: Questionaire[],
+    userIDs: string[] // right now it is user wallet address
 }
 
 export type VotingOption = {
+    id: number,
     option: string,
     votes: number
 }
