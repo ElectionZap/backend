@@ -138,7 +138,7 @@ export const getPollByID = async (req, res) => {
       return res.status(404).json({ message: `Poll with ID ${id} not found` });
     }
 
-    res.status(200).json({ poll: row });
+    res.status(200).json(row);
   });
 }
 
@@ -174,7 +174,7 @@ export const getAllPolls = async (req, res) => {
       return res.status(404).json({ message: "No polls found" });
     }
 
-    res.status(200).json({ polls: rows });
+    res.status(200).json(rows);
   });
 }
 
@@ -206,6 +206,25 @@ export const createPoll = async (req, res) => {
     //TODO: Add poll to creator's poll_ids
 
     res.status(201).json({ poll_id: this.lastID });
+  });
+}
+
+export const addNillionIdToPoll = async (req, res) => {
+  const { id } = req.params;
+  const { nillionId } = req.body;
+  db.run("UPDATE polls SET nillion_id = ? WHERE poll_id = ?", [nillionId, id], function(err) {
+    if (err) {
+      return res.status(500).json({
+        message: "Error adding Nillion ID to poll",
+        error: err.message,
+      });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ message: `Poll with ID ${id} not found` });
+    }
+
+    res.status(200).json({ message: `Nillion ID added to poll with ID ${id} successfully` });
   });
 }
 

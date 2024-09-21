@@ -28,6 +28,7 @@
 
 export type Poll = {
     id: number,
+    nillionId: string,
     title: string,
     description: string,
     isQuadraticVoting: number,
